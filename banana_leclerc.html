@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banana Leclerc Clicker - Balanced & Saving</title>
+    
+    <!-- PWA Meta Tags & Manifest Links -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-content">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#0a0a0c">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght=500;700&family=Roboto+Mono:wght=400;700&display=swap');
+
+        :root {
+            --bg-dark: #0a0a0c;
+            --panel-bg: #151518;
+            --border-color: #2a2a35;
+            --text-main: #f0f0f0;
+            --text-muted: #888899;
+            --banana-yellow: #fcd34d;
+            --ferrari-red: #ef4444;
+            --glow-red: rgba(239, 68, 68, 0.5);
+            --glow-yellow: rgba(252, 211, 77, 0.3);
+
+            /* Rarity Colors */
+            --common: #94a3b8;
+            --uncommon: #4ade80;
+            --rare: #3b82f6;
+            --ultra: #a855f7;
+            --mythic: #fbbf24;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--bg-dark); color: var(--text-main);
+            display: flex; height: 100vh; overflow: hidden;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .panel {
+            padding: 25px; box-sizing: border-box; height: 100%; overflow-y: auto;
+            border-right: 1px solid var(--border-color);
+            background: rgba(21, 21, 24, 0.85); backdrop-filter: blur(10px);
+        }
+        #left-panel { width: 30%; text-align: center; display: flex; flex-direction: column; align-items: center; position: relative; }
+        #mid-panel { width: 35%; text-align: center; position: relative; display: flex; flex-direction: column; align-items: center; }
+        #right-panel { width: 35%; border-right: none; }
+
+        h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; margin-top: 0; }
+        .yellow-text { color: var(--banana-yellow); text-shadow: 0 0 10px var(--glow-yellow); }
+        .red-text { color: var(--ferrari-red); text-shadow: 0 0 10px var(--glow-red); }
+
+        /* Stats & Clicker */
+        #score-display { font-size: 4rem; font-weight: 700; margin: 10px 0; font-family: 'Roboto Mono', monospace; }
+        
+        .stat-box-container { display: flex; gap: 10px; width: 100%; margin-bottom: 30px; }
+        .stat-box { 
+            background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px;
+            padding: 10px; flex: 1; text-align: center;
+        }
+        .stat-box span { display: block; font-size: 1.2rem; font-weight: bold; font-family: 'Roboto Mono', monospace; }
+        .stat-box label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
+
+        #main-banana {
+            width: 280px; cursor: pointer; user-select: none;
+            transition: transform 0.05s;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+            animation: float 4s ease-in-out infinite;
+        }
+        #main-banana:active { transform: scale(0.92) !important; filter: drop-shadow(0 0 40px var(--glow-yellow)); }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0px); } }
+
+        .floating-number {
+            position: absolute; pointer-events: none;
+            font-size: 2rem; font-weight: bold; color: var(--banana-yellow);
+            font-family: 'Roboto Mono', monospace; text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            animation: floatUp 1s ease-out forwards;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+        }
+
+        /* Crate Shop */
+        .crate-box {
+            background: linear-gradient(145deg, #1e1e24, #121215); border: 2px solid #333;
+            border-radius: 15px; padding: 30px; margin-top: 20px; width: 85%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .crate-box button {
+            background: linear-gradient(90deg, var(--ferrari-red), #b91c1c); color: white;
+            border: none; padding: 15px; font-size: 1.4rem; font-family: 'Rajdhani', sans-serif;
+            font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;
+            text-transform: uppercase; letter-spacing: 1px; transition: 0.2s;
+        }
+        .crate-box button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px var(--glow-red); }
+        .crate-box button:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; transform: none; }
+
+        #reveal-area { margin-top: 30px; min-height: 200px; display: flex; justify-content: center; align-items: center; perspective: 1000px; width: 100%; }
+        
+        .drawn-card {
+            background-color: #1a1a1a; border: 4px solid; border-radius: 12px; padding: 25px; width: 85%;
+            text-align: center; position: relative; overflow: hidden;
+            animation: flipIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+        @keyframes flipIn { 0% { transform: rotateY(-90deg) scale(0.5); opacity: 0; } 100% { transform: rotateY(0) scale(1); opacity: 1; } }
+
+        /* Reset Save Button */
+        #reset-btn {
+            margin-top: auto; padding: 10px 20px; background: none; border: 1px solid #555;
+            color: #888; font-family: 'Rajdhani', sans-serif; cursor: pointer; border-radius: 5px;
+            transition: 0.2s; text-transform: uppercase; font-weight: bold; font-size: 0.8rem;
+        }
+        #reset-btn:hover { background: rgba(239, 68, 68, 0.2); border-color: var(--ferrari-red); color: var(--ferrari-red); }
+
+        /* Inventory */
+        #inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; padding-bottom: 20px; }
+        .inv-card {
+            background: #111; border: 2px solid; border-radius: 8px; padding: 12px;
+            display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+            text-align: center; height: 120px; position: relative;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8); transition: transform 0.2s;
+        }
+        .inv-card:hover { transform: translateY(-5px); z-index: 10; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .inv-name { font-size: 0.85rem; font-weight: bold; line-height: 1.2; margin-bottom: 5px; }
+        .inv-level { 
+            position: absolute; top: -10px; right: -10px; background: #222; border: 2px solid; border-radius: 50%;
+            width: 25px; height: 25px; display: flex; justify-content: center; align-items: center;
+            font-size: 0.75rem; font-weight: bold; font-family: 'Roboto Mono', monospace;
+        }
+
+        /* Rarity Visuals */
+        .rarity-Common { border-color: var(--common); color: var(--common); }
+        .rarity-Uncommon { border-color: var(--uncommon); color: var(--uncommon); }
+        .rarity-Rare { border-color: var(--rare); color: var(--rare); }
+        .rarity-Ultra { border-color: var(--ultra); color: var(--ultra); box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); }
+        .rarity-Mythic { border-color: var(--mythic); color: var(--mythic); text-shadow: 0 0 8px var(--glow-yellow); box-shadow: 0 0 20px var(--glow-yellow); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+    <!-- LEFT PANEL: Clicker -->
+    <div id="left-panel" class="panel">
+        <h1><span class="yellow-text">Banana</span> <span class="red-text">Leclerc</span></h1>
+        <div id="score-display" class="yellow-text">0</div>
+        
+        <div class="stat-box-container">
+            <div class="stat-box"><label>Total Clicks</label><span id="clicks-display">0</span></div>
+            <div class="stat-box"><label>Bananas/Sec</label><span id="bps-display">0.0</span></div>
+        </div>
+        <div class="stat-box-container">
+            <div class="stat-box"><label>Bananas/Click</label><span id="bpc-display">1.0</span></div>
+            <div class="stat-box"><label>Multiplier</label><span id="mult-display" class="red-text">x1.0</span></div>
+        </div>
+
+        <img src="banana_leclerc.png" id="main-banana" alt="Banana Leclerc" draggable="false">
+    </div>
+
+    <!-- MIDDLE PANEL: Gacha -->
+    <div id="mid-panel" class="panel">
+        <h2>Pit Stop <span class="yellow-text">Crates</span></h2>
+        
+        <div class="crate-box">
+            <h3 style="margin-bottom: 5px;">Scuderia Crate</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0;">Pull from 1,089 Unique Cards!</p>
+            <p style="font-size: 1.2rem;">Cost: <span id="crate-cost" class="yellow-text" style="font-family: 'Roboto Mono'; font-weight:bold;">50</span></p>
+            <button id="buy-btn" onclick="openCrate()">Open Crate</button>
+        </div>
+
+        <div id="reveal-area"></div>
+        
+        <button id="reset-btn" onclick="hardReset()">⚠ Reset Save Game</button>
+    </div>
+
+    <!-- RIGHT PANEL: Inventory Grid -->
+    <div id="right-panel" class="panel">
+        <h3 style="border-bottom: 1px solid #333; padding-bottom: 10px;">Collection (<span id="unique-cards">0</span>/1089)</h3>
+        <div id="inventory-grid"></div>
+    </div>
+
+    <script>
+        // --- PWA SERVICE WORKER INITIALIZATION ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registered successfully!', reg.scope))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+
+        // --- CORE GAME VARIABLES (Defaults) ---
+        let bananas = 0;
+        let baseBPC = 1;
+        let baseBPS = 0;
+        let multiplier = 1.0; 
+        let crateCost = 50;
+        let totalClicks = 0;
+        let playerInventory = {}; 
+
+        // --- SAVE/LOAD SYSTEM ---
+        const SAVE_KEY = "bananaLeclercSaveData";
+
+        function loadGame() {
+            const savedData = localStorage.getItem(SAVE_KEY);
+            if (savedData) {
+                try {
+                    const parsed = JSON.parse(savedData);
+                    bananas = parsed.bananas || 0;
+                    baseBPC = parsed.baseBPC || 1;
+                    baseBPS = parsed.baseBPS || 0;
+                    multiplier = parsed.multiplier || 1.0;
+                    crateCost = parsed.crateCost || 50;
+                    totalClicks = parsed.totalClicks || 0;
+                    playerInventory = parsed.playerInventory || {};
+                } catch (e) {
+                    console.error("Save file corrupted. Starting fresh.");
+                }
+            }
+        }
+
+        function saveGame() {
+            const dataToSave = {
+                bananas, baseBPC, baseBPS, multiplier, crateCost, totalClicks, playerInventory
+            };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(dataToSave));
+        }
+
+        function hardReset() {
+            if(confirm("Are you sure? This will wipe your money, stats, and all your cards permanently!")) {
+                localStorage.removeItem(SAVE_KEY);
+                location.reload(); // Refresh the page to clear stats
+            }
+        }
+
+        // Load progress as soon as the page opens!
+        loadGame();
+
+
+        // --- 1,089 CARD GENERATOR ENGINE ---
+        const adjectives = ["Scuffed", "Used", "Rusty", "Dirty", "Carbon", "Aero", "Slick", "Wet", "Cursed", "Blessed", "Fast", "Heavy", "Light", "Optimal", "Sweaty", "Cold", "Hot", "Bono's", "Fred's", "Mattia's", "Max's", "Carlos'"];
+        const nouns = ["Tire", "Front Wing", "Rear Wing", "Halo", "Steering Wheel", "Pedal", "Chassis", "Helmet", "Visor", "Balaclava", "Race Suit", "Gloves", "Boots", "Drink System", "Radio", "Telemetry", "Jack", "Wheel Gun", "Tire Blanket", "Brake Duct", "Sidepod", "Floor", "Diffuser", "Engine", "MGU-K", "MGU-H", "Turbo", "Battery", "Suspension"];
+        const suffixes = ["of Speed", "of Downforce", "of Drag", "of Reliability", "of Strategy", "of the Tifosi", "of the Apex", "of the Slipstream", "of the DRS", "of the Pitwall", "of Suffering", "of Pain", "of Glory", "of Redemption"];
+
+        let database = { Common: [], Uncommon: [], Rare: [], Ultra: [], Mythic: [] };
+
+        nouns.forEach(n => database.Common.push(n));
+        adjectives.forEach(a => nouns.forEach(n => database.Uncommon.push(`${a} ${n}`)));
+        nouns.forEach(n => suffixes.forEach(s => database.Rare.push(`${n} ${s}`)));
+        
+        database.Ultra = ["I Am Stupid Moment", "DRS (Drag Reduction Skin)", "Monaco Curse Broken", "Tifosi Roar", "Engine Mode 1", "Plan E", "Smooth Operator Collab", "Charles' Piano", "Lord Perceval", "Inchident"];
+        database.Mythic = ["The Golden Banana Suit", "Monaco Winner Trophy", "World Drivers Championship", "Il Predestinato", "God Tier Setup", "Ferrari Masterplan"];
+
+
+        // --- GAME LOGIC ---
+
+        // 1. Click Handler
+        const bananaImg = document.getElementById('main-banana');
+        bananaImg.addEventListener('click', (e) => {
+            let gained = (baseBPC * multiplier);
+            bananas += gained;
+            totalClicks++;
+            
+            let clickSound = new Audio('audio.mp3');
+            clickSound.volume = 0.4;
+            clickSound.play().catch(e => {}); 
+
+            createFloatingText(e.clientX, e.clientY, `+${Math.floor(gained)}`);
+            updateUI();
+        });
+
+        function createFloatingText(x, y, text) {
+            const floatEl = document.createElement('div');
+            floatEl.className = 'floating-number';
+            floatEl.innerText = text;
+            floatEl.style.left = `${x - 20 + (Math.random() * 40)}px`;
+            floatEl.style.top = `${y - 20}px`;
+            document.body.appendChild(floatEl);
+            setTimeout(() => { floatEl.remove(); }, 1000);
+        }
+
+        // 2. Idle Loop & Auto-Save (Every 1 Second)
+        setInterval(() => {
+            bananas += (baseBPS * multiplier);
+            updateUI();
+            saveGame(); // SAAAVEEEE!
+        }, 1000);
+
+        // 3. Update Dashboard UI
+        function updateUI() {
+            document.getElementById('score-display').innerText = Math.floor(bananas).toLocaleString();
+            document.getElementById('clicks-display').innerText = totalClicks.toLocaleString();
+            document.getElementById('bps-display').innerText = (baseBPS * multiplier).toFixed(1);
+            document.getElementById('bpc-display').innerText = (baseBPC * multiplier).toFixed(1);
+            document.getElementById('mult-display').innerText = `x${multiplier.toFixed(2)}`;
+            document.getElementById('crate-cost').innerText = Math.floor(crateCost).toLocaleString();
+            
+            document.getElementById('buy-btn').disabled = (bananas < Math.floor(crateCost));
+        }
+
+        // 4. Open Crate System (REBALANCED)
+        function openCrate() {
+            let actualCost = Math.floor(crateCost);
+            if (bananas < actualCost) return;
+            
+            bananas -= actualCost;
+            
+            // NERFED THE ECONOMY: Crates scale up by 15% instead of 8%
+            crateCost = crateCost * 1.15; 
+            
+            let roll = Math.random() * 100;
+            let rarity = ""; let powerDesc = "";
+
+            // NERFED UPGRADES: To prevent infinite spamming
+            if (roll <= 1) { 
+                rarity = "Mythic"; baseBPC += 15; baseBPS += 40; multiplier += 0.15;
+                powerDesc = "+15 BPC | +40 BPS | +0.15x Mult";
+            } else if (roll <= 6) { 
+                rarity = "Ultra"; baseBPC += 5; baseBPS += 15; multiplier += 0.05;
+                powerDesc = "+5 BPC | +15 BPS | +0.05x Mult";
+            } else if (roll <= 20) { 
+                rarity = "Rare"; baseBPC += 2; baseBPS += 5;
+                powerDesc = "+2 BPC | +5 BPS";
+            } else if (roll <= 50) { 
+                rarity = "Uncommon"; baseBPC += 1; baseBPS += 2;
+                powerDesc = "+1 BPC | +2 BPS";
+            } else { 
+                rarity = "Common"; baseBPS += 1; // Common gives no BPC anymore
+                powerDesc = "+1 BPS";
+            }
+
+            let cardList = database[rarity];
+            let randomCard = cardList[Math.floor(Math.random() * cardList.length)];
+
+            if (playerInventory[randomCard]) {
+                playerInventory[randomCard].level++;
+            } else {
+                playerInventory[randomCard] = { level: 1, rarity: rarity };
+            }
+
+            showReveal(rarity, randomCard, powerDesc);
+            renderInventory();
+            updateUI();
+            saveGame(); // Save immediately after a purchase!
+        }
+
+        // 5. Reveal Visual
+        function showReveal(rarity, cardName, powerDesc) {
+            let area = document.getElementById('reveal-area');
+            area.innerHTML = `
+                <div class="drawn-card rarity-${rarity}">
+                    <div style="font-size:0.8rem; letter-spacing:2px; text-transform:uppercase; margin-bottom:10px;">
+                        ${rarity} DROP!
+                    </div>
+                    <h2 style="margin-bottom: 15px;">${cardName}</h2>
+                    <div style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; font-family: 'Roboto Mono', monospace; font-size: 0.9rem; color: #aaa;">
+                        ${powerDesc}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 6. Draw Inventory
+        function renderInventory() {
+            let grid = document.getElementById('inventory-grid');
+            grid.innerHTML = ""; 
+            
+            let uniqueCount = 0;
+            const rarityValues = { "Mythic": 5, "Ultra": 4, "Rare": 3, "Uncommon": 2, "Common": 1 };
+            
+            let sortedKeys = Object.keys(playerInventory).sort((a, b) => {
+                return rarityValues[playerInventory[b].rarity] - rarityValues[playerInventory[a].rarity];
+            });
+
+            for (let cardName of sortedKeys) {
+                uniqueCount++;
+                let cardData = playerInventory[cardName];
+
+                let div = document.createElement('div');
+                div.className = `inv-card rarity-${cardData.rarity}`;
+                div.innerHTML = `
+                    <div class="inv-level rarity-${cardData.rarity}">${cardData.level}</div>
+                    <div style="font-size:0.6rem; text-transform:uppercase; color:#888;">${cardData.rarity}</div>
+                    <div class="inv-name">${cardName}</div>
+                `;
+                grid.appendChild(div);
+            }
+
+            document.getElementById('unique-cards').innerText = uniqueCount;
+        }
+
+        // Final initial render if cards exist in cache
+        renderInventory();
+        updateUI();
+
+    </script>
+</body>
+</html>
